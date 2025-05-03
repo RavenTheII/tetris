@@ -13,10 +13,15 @@ SCREEN_HEIGHT = BLOCK_SIZE * ROWS
 BLACK = (0, 0, 0)
 GRAY = (50, 50, 50)
 COLORS = {
-    'I': (0, 255, 255),
-    'O': (255, 255, 0),
-    'T': (128, 0, 128)
+    'I': (0, 255, 255),    # Cyan
+    'O': (255, 255, 0),    # Yellow
+    'T': (128, 0, 128),    # Purple
+    'L': (255, 165, 0),    # Orange
+    'J': (0, 0, 255),      # Blue
+    'S': (0, 255, 0),      # Green
+    'Z': (255, 0, 0),      # Red
 }
+
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Tetris")
@@ -26,7 +31,12 @@ SHAPES = {
     'I': [(0, 0), (0, -1), (0, 1), (0, 2)],
     'O': [(0, 0), (0, 1), (1, 0), (1, 1)],
     'T': [(0, 0), (-1, 0), (1, 0), (0, 1)],
+    'L': [(0, 0), (-1, 0), (1, 0), (1, 1)],
+    'J': [(0, 0), (-1, 0), (1, 0), (-1, 1)],
+    'S': [(0, 0), (1, 0), (0, 1), (-1, 1)],
+    'Z': [(0, 0), (-1, 0), (0, 1), (1, 1)],
 }
+
 
 board = [[None for _ in range(COLUMNS)] for _ in range(ROWS)]
 
