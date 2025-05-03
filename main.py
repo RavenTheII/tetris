@@ -26,6 +26,7 @@ COLORS = {
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Tetris")
 clock = pygame.time.Clock()
+score = 0
 
 SHAPES = {
     'I': [(0, 0), (0, -1), (0, 1), (0, 2)],
@@ -109,12 +110,42 @@ def draw_block(block):
             pygame.draw.rect(screen, block.color, (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
 
 def clear_full_rows():
-    global board
+    global board, score
     new_board = [row for row in board if any(cell is None for cell in row)]
-    lines_cleared = ROWS - len(new_board)
-    for _ in range(lines_cleared):
+    cleared_lines = ROWS - len(new_board)
+    
+    for _ in range(cleared_lines):
         new_board.insert(0, [None for _ in range(COLUMNS)])
+    
     board = new_board
+
+    if cleared_lines == 1:
+        score += 100
+    elif cleared_lines == 2:
+        score += 235
+    elif cleared_lines == 3:
+        score += 370
+    elif cleared_lines == 4:
+        score += 550
+
+
+def draw_score():
+    font = pygame.font.SysFont('Arial', 24)
+    score_text = font.render(f'Score: {score}', True, (255, 255, 255))
+    screen.blit(score_text, (10, 10))  
+
+def draw_speed():
+    font = pygame.font.SysFont('Arial', 24)
+    speed_level = max(1, 30 - fall_delay + 1) 
+    speed_text = font.render(f"Speed: {speed_level}", True, (255, 255, 255))
+    screen.blit(speed_text, (10, 30))
+
+
+def adjust_speed():
+    global fall_delay
+    fall_delay = max(10, 30 - (score // 400))  
+
+
 
 def check_game_over(block):
     for x, y in block.get_cells():
@@ -135,6 +166,9 @@ while running:
     draw_grid()
     draw_board()
     draw_block(current_block)
+    draw_score()
+    adjust_speed()
+    draw_speed()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -164,8 +198,6 @@ while running:
                 pygame.time.wait(2000)
                 running = False
         fall_timer = 0
-
-    
 
     pygame.display.update()
     clock.tick(60)
