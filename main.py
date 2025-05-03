@@ -1,0 +1,164 @@
+import pygame
+import sys
+import random
+
+pygame.init()
+
+BLOCK_SIZE = 30
+COLUMNS = 10
+ROWS = 20
+SCREEN_WIDTH = BLOCK_SIZE * COLUMNS
+SCREEN_HEIGHT = BLOCK_SIZE * ROWS
+
+BLACK = (0, 0, 0)
+GRAY = (50, 50, 50)
+COLORS = {
+    'I': (0, 255, 255),
+    'O': (255, 255, 0),
+    'T': (128, 0, 128)
+}
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Tetris")
+clock = pygame.time.Clock()
+
+SHAPES = {
+    'I': [(0, 0), (0, -1), (0, 1), (0, 2)],
+    'O': [(0, 0), (0, 1), (1, 0), (1, 1)],
+    'T': [(0, 0), (-1, 0), (1, 0), (0, 1)],
+}
+
+board = [[None for _ in range(COLUMNS)] for _ in range(ROWS)]
+
+class Block:
+    def __init__(self, shape):
+        self.shape = shape
+        self.color = COLORS[shape]
+        self.positions = SHAPES[shape]
+        self.x = COLUMNS // 2
+        self.y = 0
+    
+    def rotate(self):
+        if self.shape == 'O':
+            return 
+
+        new_positions = [(-py, px) for px, py in self.positions]
+
+        for px, py in new_positions:
+            nx, ny = self.x + px, self.y + py
+            if nx < 0 or nx >= COLUMNS or ny < 0 or ny >= ROWS:
+                return  
+            if ny >= 0 and board[ny][nx]:
+                return 
+
+   
+        self.positions = new_positions
+
+
+    def get_cells(self):
+        return [(self.x + px, self.y + py) for px, py in self.positions]
+
+    def move(self, dx, dy):
+        if self.valid_move(dx, dy):
+            self.x += dx
+            self.y += dy
+            return True
+        return False
+
+    def valid_move(self, dx, dy):
+        for px, py in self.get_cells():
+            nx, ny = px + dx, py + dy
+            if nx < 0 or nx >= COLUMNS or ny < 0 or ny >= ROWS:
+                return False
+            if ny >= 0 and board[ny][nx]:
+                return False
+        return True
+
+    def place(self):
+        for px, py in self.get_cells():
+            if 0 <= px < COLUMNS and 0 <= py < ROWS:
+                board[py][px] = self.color
+
+    
+
+def draw_grid():
+    for y in range(ROWS):
+        for x in range(COLUMNS):
+            rect = pygame.Rect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
+            pygame.draw.rect(screen, GRAY, rect, 1)
+
+def draw_board():
+    for y in range(ROWS):
+        for x in range(COLUMNS):
+            if board[y][x]:
+                pygame.draw.rect(screen, board[y][x], (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+
+def draw_block(block):
+    for x, y in block.get_cells():
+        if y >= 0:
+            pygame.draw.rect(screen, block.color, (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+
+def clear_full_rows():
+    global board
+    new_board = [row for row in board if any(cell is None for cell in row)]
+    lines_cleared = ROWS - len(new_board)
+    for _ in range(lines_cleared):
+        new_board.insert(0, [None for _ in range(COLUMNS)])
+    board = new_board
+
+def check_game_over(block):
+    for x, y in block.get_cells():
+        if y >= 0 and board[y][x] is not None:
+            return True
+    return False
+
+
+# Create initial block
+current_block = Block(random.choice(list(SHAPES.keys())))
+
+running = True
+fall_timer = 0
+fall_delay = 30
+
+while running:
+    screen.fill(BLACK)
+    draw_grid()
+    draw_board()
+    draw_block(current_block)
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                current_block.move(-1, 0)
+            elif event.key == pygame.K_RIGHT:
+                current_block.move(1, 0)
+            elif event.key == pygame.K_DOWN:
+                current_block.move(0, 1)
+            elif event.key == pygame.K_UP:
+                current_block.rotate()
+
+
+    fall_timer += 1
+    if fall_timer >= fall_delay:
+        if not current_block.move(0, 1):
+            current_block.place()
+            clear_full_rows()
+            current_block = Block(random.choice(list(SHAPES.keys())))
+            if check_game_over(current_block):
+                font = pygame.font.SysFont(None, 48)
+                text = font.render("Game Over", True, (255, 0, 0))
+                screen.blit(text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 24))
+                pygame.display.update()
+                pygame.time.wait(2000)
+                running = False
+        fall_timer = 0
+
+    
+
+    pygame.display.update()
+    clock.tick(60)
+
+pygame.quit()
+sys.exit()
