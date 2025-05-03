@@ -102,12 +102,19 @@ def draw_board():
     for y in range(ROWS):
         for x in range(COLUMNS):
             if board[y][x]:
-                pygame.draw.rect(screen, board[y][x], (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+                rect = pygame.Rect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
+                pygame.draw.rect(screen, board[y][x], rect)
+                pygame.draw.rect(screen, BLACK, rect, 2) 
+
 
 def draw_block(block):
     for x, y in block.get_cells():
         if y >= 0:
-            pygame.draw.rect(screen, block.color, (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+            rect = pygame.Rect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
+            pygame.draw.rect(screen, block.color, rect)
+            pygame.draw.rect(screen, BLACK, rect, 2) 
+
+
 
 def clear_full_rows():
     global board, score
@@ -168,7 +175,7 @@ while running:
     draw_block(current_block)
     draw_score()
     adjust_speed()
-    draw_speed()
+    #draw_speed()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
