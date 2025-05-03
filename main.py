@@ -167,14 +167,16 @@ current_block = Block(random.choice(list(SHAPES.keys())))
 running = True
 fall_timer = 0
 fall_delay = 30
+move_timer = 0 
+move_delay = 8.5
 
 while running:
     screen.fill(BLACK)
     draw_grid()
     draw_board()
     draw_block(current_block)
-    draw_score()
     adjust_speed()
+    draw_score()
     #draw_speed()
 
     for event in pygame.event.get():
@@ -185,12 +187,45 @@ while running:
                 current_block.move(-1, 0)
             elif event.key == pygame.K_RIGHT:
                 current_block.move(1, 0)
-            elif event.key == pygame.K_DOWN:
-                current_block.move(0, 1)
             elif event.key == pygame.K_UP:
                 current_block.rotate()
+            elif event.key == pygame.K_SPACE:
+                # Hard drop
+                while current_block.move(0, 1):
+                    pass
+                current_block.place()
+                clear_full_rows()
+                current_block = Block(random.choice(list(SHAPES.keys())))
+                if check_game_over(current_block):
+                    font = pygame.font.SysFont(None, 48)
+                    text = font.render("Game Over", True, (255, 0, 0))
+                    screen.blit(text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 24))
+                    pygame.display.update()
+                    pygame.time.wait(2000)
+                    running = False
 
+    # Handle continuous soft drop
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_DOWN]:  
+        soft_drop = True
+    else:
+        soft_drop = False
+    
+    if keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]:
+        move_timer += 1
+        if move_timer >= move_delay:
+            if keys[pygame.K_LEFT]:  
+                current_block.move(-1, 0)
+            if keys[pygame.K_RIGHT]:  
+                current_block.move(1, 0)
+            move_timer = 0  
 
+    if soft_drop:
+        fall_delay = 7 
+    else:
+        fall_delay = 30 
+
+    # Timer logic for block falling
     fall_timer += 1
     if fall_timer >= fall_delay:
         if not current_block.move(0, 1):
