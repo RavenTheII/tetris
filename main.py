@@ -27,6 +27,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Tetris")
 clock = pygame.time.Clock()
 score = 0
+paused = False
+game_over = False
 
 SHAPES = {
     'I': [(0, 0), (0, -1), (0, 1), (0, 2)],
@@ -201,6 +203,31 @@ def draw_ghost(block):
             screen.blit(ghost_surface, (x * BLOCK_SIZE, y * BLOCK_SIZE))
             pygame.draw.rect(screen, BLACK, (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE), 1)
 
+def restart_game():
+    global board, score, current_block, fall_timer, paused, game_over
+    board = [[None for _ in range(COLUMNS)] for _ in range(ROWS)]
+    score = 0
+    fall_timer = 0
+    paused = False
+    game_over = False
+    current_block = Block(random.choice(list(SHAPES.keys())))
+
+def draw_pause_menu():
+    font = pygame.font.SysFont(None, 40)
+    pause_text = font.render("Paused", True, (255, 255, 255))
+    resume_text = font.render("Press P to Resume", True, (200, 200, 200))
+    restart_text = font.render("Press R to Restart", True, (200, 200, 200))
+    screen.blit(pause_text, (SCREEN_WIDTH // 2 - 70, SCREEN_HEIGHT // 2 - 60))
+    screen.blit(resume_text, (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 20))
+    screen.blit(restart_text, (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 + 20))
+
+def draw_game_over():
+    font = pygame.font.SysFont(None, 40)
+    over_text = font.render("Game Over", True, (255, 0, 0))
+    restart_text = font.render("Press R to Restart", True, (200, 200, 200))
+    screen.blit(over_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 30))
+    screen.blit(restart_text, (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 + 10))
+
 # Create initial block
 current_block = Block(random.choice(list(SHAPES.keys())))
 
@@ -212,6 +239,37 @@ move_delay = 8.5
 
 while running:
     screen.fill(BLACK)
+
+    if game_over:
+        draw_board()
+        draw_game_over()
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                restart_game()
+        clock.tick(60)
+        continue
+
+    if paused:
+        draw_board()
+        draw_block(current_block)
+        draw_ghost(current_block)
+        draw_pause_menu()
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_p:
+                    paused = False
+                elif event.key == pygame.K_r:
+                    restart_game()
+        clock.tick(60)
+        continue
     draw_grid()
     draw_board()
     draw_block(current_block)
@@ -238,20 +296,14 @@ while running:
                 clear_full_rows()
                 current_block = Block(random.choice(list(SHAPES.keys())))
                 if check_game_over(current_block):
-                    font = pygame.font.SysFont(None, 48)
-                    text = font.render("Game Over", True, (255, 0, 0))
-                    screen.blit(text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 24))
-                    pygame.display.update()
-                    pygame.time.wait(2000)
-                    running = False
+                    game_over = True
+            elif event.key == pygame.K_p:
+                paused = True
 
     # Handle soft drop
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_DOWN]:  
-        soft_drop = True
-    else:
-        soft_drop = False
-    
+    soft_drop = keys[pygame.K_DOWN]
+
     if keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]:
         move_timer += 0.9
         if move_timer >= move_delay:
@@ -261,10 +313,7 @@ while running:
                 current_block.move(1, 0)
             move_timer = 0  
 
-    if soft_drop:
-        fall_delay = 7 
-    else:
-        fall_delay = 30 
+    fall_delay = 7 if soft_drop else 30
 
     # Timer logic for block falling
     fall_timer += 1
@@ -274,12 +323,7 @@ while running:
             clear_full_rows()
             current_block = Block(random.choice(list(SHAPES.keys())))
             if check_game_over(current_block):
-                font = pygame.font.SysFont(None, 48)
-                text = font.render("Game Over", True, (255, 0, 0))
-                screen.blit(text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 24))
-                pygame.display.update()
-                pygame.time.wait(2000)
-                running = False
+                game_over = True
         fall_timer = 0
 
     pygame.display.update()
@@ -289,9 +333,8 @@ pygame.quit()
 sys.exit()
 
 """
+TO DO
 Hold Piece System let the player store one block and swap it
-
-Pause Menu / Restart Game
 
 Sound Effects and Background Music
 
@@ -300,8 +343,6 @@ Bag System (true 7-bag randomizer for fairness)
 High Score Tracking
 
 Level Display and Animation Effects
-
-Line Clear Animation
 
 Improve Piece Rotation (Wall Kicks)
     """
