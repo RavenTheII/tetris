@@ -116,14 +116,36 @@ def draw_block(block):
 
 
 
+def get_full_rows():
+    return [y for y in range(ROWS) if all(board[y][x] is not None for x in range(COLUMNS))]
+
+def animate_line_clear(full_rows):
+    for _ in range(3):  # Flash 3 times
+        for y in full_rows:
+            for x in range(COLUMNS):
+                rect = pygame.Rect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE)
+                pygame.draw.rect(screen, (255, 255, 255), rect)  # Flash white
+        pygame.display.update()
+        pygame.time.wait(60)
+
+        draw_board()
+        draw_grid()
+        pygame.display.update()
+        pygame.time.wait(60)
+
 def clear_full_rows():
     global board, score
+
+    full_rows = get_full_rows()
+    if full_rows:
+        animate_line_clear(full_rows)
+
     new_board = [row for row in board if any(cell is None for cell in row)]
     cleared_lines = ROWS - len(new_board)
-    
+
     for _ in range(cleared_lines):
         new_board.insert(0, [None for _ in range(COLUMNS)])
-    
+
     board = new_board
 
     if cleared_lines == 1:
@@ -134,7 +156,6 @@ def clear_full_rows():
         score += 370
     elif cleared_lines == 4:
         score += 550
-
 
 def draw_score():
     font = pygame.font.SysFont('Arial', 24)
@@ -147,12 +168,9 @@ def draw_speed():
     speed_text = font.render(f"Speed: {speed_level}", True, (255, 255, 255))
     screen.blit(speed_text, (10, 30))
 
-
 def adjust_speed():
     global fall_delay
-    fall_delay = max(10, 30 - (score // 400))  
-
-
+    fall_delay = max(10, 30 - (score // 350))  
 
 def check_game_over(block):
     for x, y in block.get_cells():
@@ -160,6 +178,28 @@ def check_game_over(block):
             return True
     return False
 
+def get_ghost_position(block):
+    ghost = Block(block.shape)
+    ghost.positions = block.positions.copy()
+    ghost.x = block.x
+    ghost.y = block.y
+
+    while ghost.valid_move(0, 1):
+        ghost.y += 1
+
+    ghost.color = (200, 200, 200)  
+    return ghost
+
+# Function to draw the ghost piece
+def draw_ghost(block):
+    ghost = get_ghost_position(block)
+
+    for x, y in ghost.get_cells():
+        if y >= 0:
+            ghost_surface = pygame.Surface((BLOCK_SIZE, BLOCK_SIZE), pygame.SRCALPHA)
+            ghost_surface.fill((*block.color, 100)) 
+            screen.blit(ghost_surface, (x * BLOCK_SIZE, y * BLOCK_SIZE))
+            pygame.draw.rect(screen, BLACK, (x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE), 1)
 
 # Create initial block
 current_block = Block(random.choice(list(SHAPES.keys())))
@@ -177,7 +217,8 @@ while running:
     draw_block(current_block)
     adjust_speed()
     draw_score()
-    #draw_speed()
+    draw_ghost(current_block)
+    draw_speed()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -204,7 +245,7 @@ while running:
                     pygame.time.wait(2000)
                     running = False
 
-    # Handle continuous soft drop
+    # Handle soft drop
     keys = pygame.key.get_pressed()
     if keys[pygame.K_DOWN]:  
         soft_drop = True
@@ -212,7 +253,7 @@ while running:
         soft_drop = False
     
     if keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]:
-        move_timer += 1
+        move_timer += 0.9
         if move_timer >= move_delay:
             if keys[pygame.K_LEFT]:  
                 current_block.move(-1, 0)
@@ -246,3 +287,21 @@ while running:
 
 pygame.quit()
 sys.exit()
+
+"""
+Hold Piece System let the player store one block and swap it
+
+Pause Menu / Restart Game
+
+Sound Effects and Background Music
+
+Bag System (true 7-bag randomizer for fairness)
+
+High Score Tracking
+
+Level Display and Animation Effects
+
+Line Clear Animation
+
+Improve Piece Rotation (Wall Kicks)
+    """
