@@ -29,6 +29,9 @@ clock = pygame.time.Clock()
 score = 0
 paused = False
 game_over = False
+base_fall_delay = 30
+fall_delay = base_fall_delay
+
 
 SHAPES = {
     'I': [(0, 0), (0, -1), (0, 1), (0, 2)],
@@ -40,7 +43,6 @@ SHAPES = {
     'Z': [(0, 0), (-1, 0), (0, 1), (1, 1)],
 }
 
-
 board = [[None for _ in range(COLUMNS)] for _ in range(ROWS)]
 
 class Block:
@@ -51,21 +53,30 @@ class Block:
         self.x = COLUMNS // 2
         self.y = 0
     
+    def valid_rotation(self, new_positions, dx=0, dy=0):
+        for px, py in new_positions:
+            nx, ny = self.x + px + dx, self.y + py + dy
+            if nx < 0 or nx >= COLUMNS or ny < 0 or ny >= ROWS:
+                return False
+            if ny >= 0 and board[ny][nx]:
+                return False
+        return True
+
+    
     def rotate(self):
         if self.shape == 'O':
             return 
 
         new_positions = [(-py, px) for px, py in self.positions]
 
-        for px, py in new_positions:
-            nx, ny = self.x + px, self.y + py
-            if nx < 0 or nx >= COLUMNS or ny < 0 or ny >= ROWS:
-                return  
-            if ny >= 0 and board[ny][nx]:
-                return 
+        kicks = [(0, 0), (-1, 0), (1, 0), (-2, 0), (2, 0)]
 
-   
-        self.positions = new_positions
+        for dx, dy in kicks:
+            if self.valid_rotation(new_positions, dx, dy):
+                self.positions = new_positions
+                self.x += dx
+                self.y += dy
+                return
 
 
     def get_cells(self):
@@ -147,6 +158,7 @@ def clear_full_rows():
 
     for _ in range(cleared_lines):
         new_board.insert(0, [None for _ in range(COLUMNS)])
+        pygame.mixer.Sound("music/clear.mp3").play()
 
     board = new_board
 
@@ -171,8 +183,8 @@ def draw_speed():
     screen.blit(speed_text, (10, 30))
 
 def adjust_speed():
-    global fall_delay
-    fall_delay = max(10, 30 - (score // 350))  
+    global base_fall_delay
+    base_fall_delay = max(10, 30 - (score // 410))
 
 def check_game_over(block):
     for x, y in block.get_cells():
@@ -227,6 +239,11 @@ def draw_game_over():
     restart_text = font.render("Press R to Restart", True, (200, 200, 200))
     screen.blit(over_text, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 30))
     screen.blit(restart_text, (SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 + 10))
+
+pygame.mixer.init()
+pygame.mixer.music.load("music/bg_music1.mp3")
+pygame.mixer.music.set_volume(0.1)
+pygame.mixer.music.play(-1) 
 
 # Create initial block
 current_block = Block(random.choice(list(SHAPES.keys())))
@@ -287,8 +304,10 @@ while running:
             elif event.key == pygame.K_RIGHT:
                 current_block.move(1, 0)
             elif event.key == pygame.K_UP:
+                pygame.mixer.Sound("music/rotate.mp3").play()
                 current_block.rotate()
             elif event.key == pygame.K_SPACE:
+                pygame.mixer.Sound("music/drop.mp3").play()
                 # Hard drop
                 while current_block.move(0, 1):
                     pass
@@ -313,7 +332,7 @@ while running:
                 current_block.move(1, 0)
             move_timer = 0  
 
-    fall_delay = 7 if soft_drop else 30
+    fall_delay = 7 if soft_drop else base_fall_delay
 
     # Timer logic for block falling
     fall_timer += 1
